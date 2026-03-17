@@ -1,36 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Essential Frailty Toolset Calculator
+
+A modern web application for evaluating 1-year mortality risk in elderly patients undergoing aortic valve replacement (TAVR/SAVR) procedures. Based on the Essential Frailty Toolset developed by Harvard Medical School.
+
+## Features
+
+- **Comprehensive Risk Assessment**: Evaluates 4 key frailty domains
+  - Physical performance (chair stands test)
+  - Cognitive function
+  - Anemia status
+  - Nutritional status (albumin)
+
+- **Real-time Results**: Instant calculation of frailty score and mortality risk
+- **Dual Procedure Comparison**: Shows mortality for both TAVR and SAVR procedures
+- **Risk Factor Breakdown**: Clear visualization of contributing risk factors
+- **Print-friendly**: Easy to print results for patient records
+- **Responsive Design**: Works on desktop, tablet, and mobile devices
+
+## Scoring
+
+The calculator assigns 1 point for each abnormal finding:
+
+| Risk Factor | Threshold |
+|-------------|-----------|
+| Chair Stands | >20 seconds or unable to complete |
+| Cognitive Impairment | Yes |
+| Anemia | Male <13 g/dL, Female <12 g/dL |
+| Hypoalbuminemia | <3.5 g/dL |
+
+**Total Score**: 0-5 (higher = higher mortality risk)
+
+## Mortality Reference
+
+| Score | TAVR | SAVR |
+|-------|------|------|
+| 0-1   | 6%   | 3%   |
+| 2     | 15%  | 7%   |
+| 3     | 28%  | 16%  |
+| 4     | 30%  | 38%  |
+| 5     | 65%  | 50%  |
+
+## Tech Stack
+
+- **Framework**: Next.js 14 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+# Install dependencies
+npm install
+
+# Run development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# Build for production
+npm run build
+
+# Start production server
+npm start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Reference
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Afilalo J, Lauck S, Kim DH, et al. Frailty in Older Adults Undergoing Aortic Valve Replacement: The FRAILTY-AVR Study. J Am Coll Cardiol. 2017;70(6):689-700. doi:10.1016/j.jacc.2017.06.024
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## License
 
-## Learn More
+This project is for educational purposes. The original calculator is maintained by Harvard Medical School.
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Disclaimer**: This calculator is for educational purposes only. Clinical decisions should be made by qualified healthcare professionals.
