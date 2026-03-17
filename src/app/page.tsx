@@ -19,6 +19,7 @@ const MORTALITY_DATA: Record<number, { tavr: number; savr: number }> = {
   3: { tavr: 28, savr: 16 },
   4: { tavr: 30, savr: 38 },
   5: { tavr: 65, savr: 50 },
+  6: { tavr: 65, savr: 50 },
 };
 
 export default function Home() {
@@ -39,7 +40,9 @@ export default function Home() {
   const calculateScore = useMemo(() => {
     let score = 0;
 
-    if (data.chairStandsUnable || (data.chairStandsTime !== null && data.chairStandsTime > 20)) {
+    if (data.chairStandsUnable) {
+      score += 2;
+    } else if (data.chairStandsTime !== null && data.chairStandsTime > 15 && data.chairStandsTime < 60) {
       score += 1;
     }
 
@@ -222,9 +225,9 @@ export default function Home() {
                     />
                     <span className="text-slate-700">Unable to complete within 60 seconds</span>
                   </label>
-                  {data.chairStandsTime !== null && data.chairStandsTime > 20 && (
+                  {data.chairStandsTime !== null && data.chairStandsTime > 15 && data.chairStandsTime < 60 && (
                     <p className="text-sm text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
-                      Time &gt;20 seconds indicates elevated risk (+1 point)
+                      Time &gt;15 seconds indicates elevated risk (+1 point)
                     </p>
                   )}
                 </div>
@@ -353,7 +356,7 @@ export default function Home() {
                     <div className="space-y-4">
                       <div className="text-center">
                         <p className="text-sm text-slate-500 mb-1">Frailty Score</p>
-                        <div className="text-5xl font-bold text-slate-800">{calculateScore}/5</div>
+                        <div className="text-5xl font-bold text-slate-800">{calculateScore}/6</div>
                       </div>
 
                       <div className={`p-4 rounded-xl ${riskInfo.bg} border ${riskInfo.border}`}>
@@ -385,15 +388,15 @@ export default function Home() {
                 <h3 className="font-semibold text-slate-800 mb-3">Risk Factors Identified</h3>
                 <div className="space-y-2">
                   {[
-                    { label: "Chair Stands", active: data.chairStandsUnable || (data.chairStandsTime !== null && data.chairStandsTime > 20) },
-                    { label: "Cognitive Impairment", active: data.cognitiveImpairment === true },
-                    { label: "Anemia", active: data.hemoglobin !== null && ((data.gender === "female" && data.hemoglobin < 12) || (data.gender === "male" && data.hemoglobin < 13)) },
-                    { label: "Hypoalbuminemia", active: data.albumin !== null && data.albumin < 3.5 },
+                    { label: "Chair Stands", active: data.chairStandsUnable, points: data.chairStandsUnable ? 2 : (data.chairStandsTime !== null && data.chairStandsTime > 15 && data.chairStandsTime < 60) ? 1 : 0 },
+                    { label: "Cognitive Impairment", active: data.cognitiveImpairment === true, points: data.cognitiveImpairment === true ? 1 : 0 },
+                    { label: "Anemia", active: data.hemoglobin !== null && ((data.gender === "female" && data.hemoglobin < 12) || (data.gender === "male" && data.hemoglobin < 13)), points: data.hemoglobin !== null && ((data.gender === "female" && data.hemoglobin < 12) || (data.gender === "male" && data.hemoglobin < 13)) ? 1 : 0 },
+                    { label: "Hypoalbuminemia", active: data.albumin !== null && data.albumin < 3.5, points: data.albumin !== null && data.albumin < 3.5 ? 1 : 0 },
                   ].map((factor, i) => (
                     <div key={i} className="flex items-center justify-between py-2">
                       <span className="text-sm text-slate-600">{factor.label}</span>
                       <span className={`text-sm font-medium ${factor.active ? "text-amber-600" : "text-slate-400"}`}>
-                        {factor.active ? "+1" : "0"}
+                        {factor.active ? `+${factor.points}` : "0"}
                       </span>
                     </div>
                   ))}
