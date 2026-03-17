@@ -42,7 +42,7 @@ export default function Home() {
 
     if (data.chairStandsUnable) {
       score += 2;
-    } else if (data.chairStandsTime !== null && data.chairStandsTime > 15 && data.chairStandsTime < 60) {
+    } else if (data.chairStandsTime !== null && data.chairStandsTime >= 15 && data.chairStandsTime <= 60) {
       score += 1;
     }
 
@@ -225,9 +225,9 @@ export default function Home() {
                     />
                     <span className="text-slate-700">Unable to complete within 60 seconds</span>
                   </label>
-                  {data.chairStandsTime !== null && data.chairStandsTime > 15 && data.chairStandsTime < 60 && (
+                  {data.chairStandsTime !== null && data.chairStandsTime >= 15 && data.chairStandsTime <= 60 && (
                     <p className="text-sm text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
-                      Time &gt;15 seconds indicates elevated risk (+1 point)
+                      Time &ge;15 seconds indicates elevated risk (+1 point)
                     </p>
                   )}
                 </div>
@@ -388,7 +388,11 @@ export default function Home() {
                 <h3 className="font-semibold text-slate-800 mb-3">Risk Factors Identified</h3>
                 <div className="space-y-2">
                   {[
-                    { label: "Chair Stands", active: data.chairStandsUnable, points: data.chairStandsUnable ? 2 : (data.chairStandsTime !== null && data.chairStandsTime > 15 && data.chairStandsTime < 60) ? 1 : 0 },
+                    { 
+                      label: "Chair Stands", 
+                      active: data.chairStandsUnable || (data.chairStandsTime !== null && data.chairStandsTime >= 15 && data.chairStandsTime <= 60),
+                      points: data.chairStandsUnable ? 2 : (data.chairStandsTime !== null && data.chairStandsTime >= 15 && data.chairStandsTime <= 60) ? 1 : 0 
+                    },
                     { label: "Cognitive Impairment", active: data.cognitiveImpairment === true, points: data.cognitiveImpairment === true ? 1 : 0 },
                     { label: "Anemia", active: data.hemoglobin !== null && ((data.gender === "female" && data.hemoglobin < 12) || (data.gender === "male" && data.hemoglobin < 13)), points: data.hemoglobin !== null && ((data.gender === "female" && data.hemoglobin < 12) || (data.gender === "male" && data.hemoglobin < 13)) ? 1 : 0 },
                     { label: "Hypoalbuminemia", active: data.albumin !== null && data.albumin < 3.5, points: data.albumin !== null && data.albumin < 3.5 ? 1 : 0 },
