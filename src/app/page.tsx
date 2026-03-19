@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 
 interface PatientData {
   gender: "male" | "female" | null;
-  procedureType: "tavr" | "savr" | null;
+  procedureType: "tavr" | "savr" | "cabg" | null;
   chairStandsTime: number | null;
   chairStandsUnable: boolean;
   cognitiveImpairment: boolean | null;
@@ -12,14 +12,46 @@ interface PatientData {
   albumin: number | null;
 }
 
-const MORTALITY_DATA: Record<number, { tavr: number; savr: number }> = {
-  0: { tavr: 6, savr: 3 },
-  1: { tavr: 6, savr: 3 },
-  2: { tavr: 15, savr: 7 },
-  3: { tavr: 28, savr: 16 },
-  4: { tavr: 30, savr: 38 },
-  5: { tavr: 65, savr: 50 },
-  6: { tavr: 65, savr: 50 },
+// 1-year mortality (%) by EFT score
+// TAVR/SAVR: Afilalo et al., JACC 2017 (FRAILTY-AVR)
+// CABG: Solomon et al., JAHA 2021 — derived from Kaplan-Meier survival curves
+//   Robust (EFT 0): 1yr=98% → mort 2%, 5yr=89% → mort 11%
+//   Prefrail (EFT 1-2): 1yr=95% → mort 5%, 5yr=83% → mort 17%
+//   Frail (EFT 3-5): 1yr=91% → mort 9%, 5yr=63% → mort 37%
+const MORTALITY_DATA: Record<number, { tavr: number; savr: number; cabg: number }> = {
+  0: { tavr: 6, savr: 3, cabg: 2 },
+  1: { tavr: 6, savr: 3, cabg: 4 },
+  2: { tavr: 15, savr: 7, cabg: 6 },
+  3: { tavr: 28, savr: 16, cabg: 9 },
+  4: { tavr: 30, savr: 38, cabg: 12 },
+  5: { tavr: 65, savr: 50, cabg: 15 },
+  6: { tavr: 65, savr: 50, cabg: 18 },
+};
+
+// 5-year mortality for CABG (Solomon et al., JAHA 2021)
+const CABG_5YR_MORTALITY: Record<number, number> = {
+  0: 11, 1: 14, 2: 20, 3: 37, 4: 42, 5: 50, 6: 55,
+};
+
+// CABG secondary outcomes by frailty group (Solomon et al., Table 2)
+const CABG_SECONDARY: Record<string, { losGe14d: number; dischargeFacility: number; readmit30d: number; majorMorbidity: number }> = {
+  robust:  { losGe14d: 5,  dischargeFacility: 2,  readmit30d: 8,  majorMorbidity: 15 },
+  prefrail: { losGe14d: 10, dischargeFacility: 4,  readmit30d: 12, majorMorbidity: 19 },
+  frail:    { losGe14d: 26, dischargeFacility: 11, readmit30d: 24, majorMorbidity: 31 },
+};
+
+type FrailtyClass = "robust" | "prefrail" | "frail";
+
+function getFrailtyClass(score: number): FrailtyClass {
+  if (score === 0) return "robust";
+  if (score <= 2) return "prefrail";
+  return "frail";
+}
+
+const FRAILTY_LABELS: Record<FrailtyClass, { label: string; color: string; bg: string; border: string; emoji: string }> = {
+  robust:   { label: "Robust (Non-Frail)", color: "text-green-700", bg: "bg-green-50", border: "border-green-200", emoji: "💪" },
+  prefrail: { label: "Pre-Frail",         color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200", emoji: "⚠️" },
+  frail:    { label: "Frail",              color: "text-red-700",   bg: "bg-red-50",   border: "border-red-200",   emoji: "🔴" },
 };
 
 export default function Home() {
@@ -64,9 +96,12 @@ export default function Home() {
     return score;
   }, [data, data.gender]);
 
-  const getMortality = (procedure: "tavr" | "savr") => {
+  const getMortality = (procedure: "tavr" | "savr" | "cabg") => {
     return MORTALITY_DATA[calculateScore]?.[procedure] ?? MORTALITY_DATA[0][procedure];
   };
+
+  const frailtyClass = getFrailtyClass(calculateScore);
+  const frailtyInfo = FRAILTY_LABELS[frailtyClass];
 
   const getRiskLevel = (mortality: number) => {
     if (mortality <= 6) return { label: "Low Risk", color: "text-green-600", bg: "bg-green-50", border: "border-green-200" };
@@ -116,7 +151,7 @@ export default function Home() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-slate-800">Essential Frailty Toolset</h1>
-              <p className="text-sm text-slate-500">Cardiovascular Procedure Risk Calculator</p>
+              <p className="text-sm text-slate-500">TAVR · SAVR · CABG — Frailty Risk Calculator</p>
             </div>
           </div>
         </div>
@@ -179,9 +214,19 @@ export default function Home() {
                     >
                       SAVR
                     </button>
+                    <button
+                      onClick={() => updateData({ procedureType: "cabg" })}
+                      className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all ${
+                        data.procedureType === "cabg"
+                          ? "border-blue-500 bg-blue-50 text-blue-700"
+                          : "border-slate-200 hover:border-slate-300 text-slate-600"
+                      }`}
+                    >
+                      CABG
+                    </button>
                   </div>
                   <p className="text-xs text-slate-500 mt-1">
-                    {data.procedureType === "tavr" ? "Transcatheter Aortic Valve Replacement" : data.procedureType === "savr" ? "Surgical Aortic Valve Replacement" : "Select procedure type"}
+                    {data.procedureType === "tavr" ? "Transcatheter Aortic Valve Replacement" : data.procedureType === "savr" ? "Surgical Aortic Valve Replacement" : data.procedureType === "cabg" ? "Coronary Artery Bypass Grafting" : "Select procedure type"}
                   </p>
                 </div>
               </div>
@@ -356,23 +401,69 @@ export default function Home() {
                     <div className="space-y-4">
                       <div className="text-center">
                         <p className="text-sm text-slate-500 mb-1">Frailty Score</p>
-                        <div className="text-5xl font-bold text-slate-800">{calculateScore}/6</div>
+                        <div className="text-5xl font-bold text-slate-800">{calculateScore}/5</div>
+                      </div>
+
+                      {/* Frailty classification */}
+                      <div className={`p-3 rounded-xl ${frailtyInfo.bg} border ${frailtyInfo.border}`}>
+                        <p className={`text-center font-semibold ${frailtyInfo.color}`}>
+                          {frailtyInfo.emoji} {frailtyInfo.label}
+                        </p>
                       </div>
 
                       <div className={`p-4 rounded-xl ${riskInfo.bg} border ${riskInfo.border}`}>
                         <p className={`text-center font-semibold ${riskInfo.color}`}>{riskInfo.label}</p>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className={`p-4 rounded-xl border-2 ${data.procedureType === "tavr" ? "border-blue-500 bg-blue-50" : "border-slate-200"}`}>
-                          <p className="text-xs text-slate-500 mb-1">TAVR</p>
-                          <p className="text-2xl font-bold text-slate-800">{MORTALITY_DATA[calculateScore].tavr}%</p>
-                        </div>
-                        <div className={`p-4 rounded-xl border-2 ${data.procedureType === "savr" ? "border-blue-500 bg-blue-50" : "border-slate-200"}`}>
-                          <p className="text-xs text-slate-500 mb-1">SAVR</p>
-                          <p className="text-2xl font-bold text-slate-800">{MORTALITY_DATA[calculateScore].savr}%</p>
+                      {/* 1-year mortality for all procedures */}
+                      <div>
+                        <p className="text-xs text-slate-500 mb-2 font-semibold uppercase tracking-wide">1-Year Mortality</p>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className={`p-3 rounded-xl border-2 text-center ${data.procedureType === "tavr" ? "border-blue-500 bg-blue-50" : "border-slate-200"}`}>
+                            <p className="text-[10px] text-slate-500 mb-0.5">TAVR</p>
+                            <p className="text-xl font-bold text-slate-800">{MORTALITY_DATA[calculateScore].tavr}%</p>
+                          </div>
+                          <div className={`p-3 rounded-xl border-2 text-center ${data.procedureType === "savr" ? "border-blue-500 bg-blue-50" : "border-slate-200"}`}>
+                            <p className="text-[10px] text-slate-500 mb-0.5">SAVR</p>
+                            <p className="text-xl font-bold text-slate-800">{MORTALITY_DATA[calculateScore].savr}%</p>
+                          </div>
+                          <div className={`p-3 rounded-xl border-2 text-center ${data.procedureType === "cabg" ? "border-blue-500 bg-blue-50" : "border-slate-200"}`}>
+                            <p className="text-[10px] text-slate-500 mb-0.5">CABG</p>
+                            <p className="text-xl font-bold text-slate-800">{MORTALITY_DATA[calculateScore].cabg}%</p>
+                          </div>
                         </div>
                       </div>
+
+                      {/* 5-year mortality for CABG */}
+                      {data.procedureType === "cabg" && (
+                        <div>
+                          <p className="text-xs text-slate-500 mb-2 font-semibold uppercase tracking-wide">5-Year Mortality (CABG)</p>
+                          <div className="p-3 rounded-xl border-2 border-blue-500 bg-blue-50 text-center">
+                            <p className="text-3xl font-bold text-slate-800">{CABG_5YR_MORTALITY[calculateScore]}%</p>
+                            <p className="text-xs text-slate-500 mt-1">Solomon et al., JAHA 2021</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* CABG secondary outcomes */}
+                      {data.procedureType === "cabg" && (
+                        <div>
+                          <p className="text-xs text-slate-500 mb-2 font-semibold uppercase tracking-wide">CABG Postop Outcomes</p>
+                          <div className="space-y-2 bg-slate-50 rounded-xl p-3">
+                            {[
+                              { label: "LOS ≥14 days", value: CABG_SECONDARY[frailtyClass].losGe14d },
+                              { label: "Discharge to facility", value: CABG_SECONDARY[frailtyClass].dischargeFacility },
+                              { label: "30-day readmission", value: CABG_SECONDARY[frailtyClass].readmit30d },
+                              { label: "Major morbidity/mortality", value: CABG_SECONDARY[frailtyClass].majorMorbidity },
+                            ].map((item, i) => (
+                              <div key={i} className="flex items-center justify-between">
+                                <span className="text-xs text-slate-600">{item.label}</span>
+                                <span className="text-xs font-bold text-slate-800">{item.value}%</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
                       <div className="bg-slate-50 rounded-xl p-4">
                         <p className="text-sm text-slate-600">
@@ -408,11 +499,20 @@ export default function Home() {
               </div>
 
               <div className="bg-blue-50 rounded-2xl border border-blue-200 p-6">
-                <h3 className="font-semibold text-blue-800 mb-2">Reference</h3>
-                <p className="text-sm text-blue-700 mb-2">
-                  Afilalo J, et al. Frailty in Older Adults Undergoing Aortic Valve Replacement: The FRAILTY-AVR Study. JACC 2017.
-                </p>
-                <p className="text-xs text-blue-600">Harvard Medical School</p>
+                <h3 className="font-semibold text-blue-800 mb-2">References</h3>
+                <div className="space-y-2">
+                  <div>
+                    <p className="text-sm text-blue-700">
+                      <span className="font-semibold">TAVR/SAVR:</span> Afilalo J, et al. Frailty in Older Adults Undergoing Aortic Valve Replacement: The FRAILTY-AVR Study. <em>JACC</em> 2017.
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-blue-700">
+                      <span className="font-semibold">CABG:</span> Solomon J, et al. The Essential Frailty Toolset in Older Adults Undergoing Coronary Artery Bypass Surgery. <em>J Am Heart Assoc</em> 2021;10:e020219.
+                    </p>
+                  </div>
+                </div>
+                <p className="text-xs text-blue-600 mt-2">McGill University / Jewish General Hospital</p>
               </div>
             </div>
           </div>
@@ -423,6 +523,10 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-4 py-6">
           <p className="text-center text-sm text-slate-500">
             This calculator is for educational purposes only. Clinical decisions should be made by qualified healthcare professionals.
+            <br />
+            <span className="text-xs text-slate-400">
+              TAVR/SAVR data: FRAILTY-AVR (Afilalo et al., JACC 2017) · CABG data: Solomon et al., JAHA 2021
+            </span>
           </p>
         </div>
       </footer>
